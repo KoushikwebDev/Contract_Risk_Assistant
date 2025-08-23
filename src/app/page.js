@@ -10,6 +10,8 @@ export default function Home() {
   const [isPending, startTransition] = useTransition();
 
   const handleEmbedding = () => {
+    setStatus("You Don't have permission to access this feature. Please contact your administrator.");
+    return;
     setStatus("");
     startTransition(async () => {
       try {
