@@ -10,10 +10,10 @@ function normalizeEnum(value, type = "risk_level") {
   const v = String(value).toLowerCase();
 
   if (type === "risk_level") {
-    if (v.includes("critical")) return "Critical";
-    if (v.includes("medium")) return "Medium";
     if (v.includes("low")) return "Low";
+    if (v.includes("medium")) return "Medium";
     if (v.includes("high")) return "High";
+    if (v.includes("critical")) return "Critical";
     return "Medium";
   }
 
