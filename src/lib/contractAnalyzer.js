@@ -4,6 +4,29 @@ import { z } from "zod";
 import { fetchRelevantDocs } from "@/lib/search";
 import config from "@/config";
 
+// ✅ Normalizer
+function normalizeEnum(value, type = "risk_level") {
+  if (!value) return type === "risk_level" ? "Medium" : "Medium";
+  const v = String(value).toLowerCase();
+
+  if (type === "risk_level") {
+    if (v.includes("critical")) return "Critical";
+    if (v.includes("medium")) return "Medium";
+    if (v.includes("low")) return "Low";
+    if (v.includes("high")) return "High";
+    return "Medium";
+  }
+
+  if (type === "severity" || type === "likelihood") {
+    if (v.includes("high")) return "High";
+    if (v.includes("medium")) return "Medium";
+    if (v.includes("low")) return "Low";
+    return "Medium";
+  }
+
+  return "Medium";
+}
+
 // Risk Analysis Schema
 const RiskSchema = z.object({
   contract_id: z.string(),
@@ -212,7 +235,15 @@ Ensure all risk scores are between 0-100 and confidence levels between 0-1.`;
     }
     
     const parsedAnalysis = JSON.parse(jsonMatch[0]);
-    
+
+    // ✅ Normalize enums before validation
+    parsedAnalysis.risk_level = normalizeEnum(parsedAnalysis.risk_level, "risk_level");
+    parsedAnalysis.risks = parsedAnalysis.risks?.map(risk => ({
+      ...risk,
+      severity: normalizeEnum(risk.severity, "severity"),
+      likelihood: normalizeEnum(risk.likelihood, "likelihood")
+    })) || [];
+
     // Validate against schema
     const validatedAnalysis = RiskSchema.parse(parsedAnalysis);
     
