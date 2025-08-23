@@ -177,7 +177,7 @@ export default function Ask() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto p-6">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Contract Risk Assistant</h1>
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">Contract Risk Assistant AI</h1>
           <p className="text-gray-600">Ask questions about contract risks and get AI-powered insights from your documents.</p>
         </div>
 
