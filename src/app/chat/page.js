@@ -478,7 +478,7 @@ export default function Ask() {
                     {contractAnalysis.context_used} KB refs
                   </div>
                 )}
-                <div className={`px-3 py-1 rounded-full text-sm font-medium ${
+                <div title="Risk Level" className={`px-3 py-1 rounded-full text-sm font-medium ${
                   contractAnalysis.risk_level === 'Critical' ? 'bg-red-100 text-red-800' :
                   contractAnalysis.risk_level === 'High' ? 'bg-orange-100 text-orange-800' :
                   contractAnalysis.risk_level === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
@@ -516,14 +516,14 @@ export default function Ask() {
                   <div className="flex items-start justify-between mb-3">
                     <h4 className="text-lg font-medium text-gray-800">{index + 1}. {risk.title}</h4>
                     <div className="flex gap-2">
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${
+                      <span title="Severity" className={`px-2 py-1 rounded text-xs font-medium ${
                         risk.severity === 'High' ? 'bg-red-100 text-red-800' :
                         risk.severity === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
                         'bg-green-100 text-green-800'
                       }`}>
                         {risk.severity}
                       </span>
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${
+                      <span title="Likelihood" className={`px-2 py-1 rounded text-xs font-medium ${
                         risk.likelihood === 'High' ? 'bg-red-100 text-red-800' :
                         risk.likelihood === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
                         'bg-green-100 text-green-800'

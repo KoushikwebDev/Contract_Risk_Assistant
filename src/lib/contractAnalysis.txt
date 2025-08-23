@@ -4,61 +4,32 @@ import { z } from "zod";
 import { fetchRelevantDocs } from "@/lib/search";
 import config from "@/config";
 
-// ✅ Normalizer
-function normalizeEnum(value, type = "risk_level") {
-  if (!value) return type === "risk_level" ? "Medium" : "Medium";
-  const v = String(value).toLowerCase();
-
-  if (type === "risk_level") {
-    if (v.includes("low")) return "Low";
-    if (v.includes("medium")) return "Medium";
-    if (v.includes("high")) return "High";
-    if (v.includes("critical")) return "Critical";
-    return "Medium";
-  }
-
-  if (type === "severity" || type === "likelihood") {
-    if (v.includes("low")) return "Low";
-    if (v.includes("medium")) return "Medium";
-    if (v.includes("high")) return "High";
-    return "Medium";
-  }
-
-  return "Medium";
-}
-
 // Risk Analysis Schema
 const RiskSchema = z.object({
   contract_id: z.string(),
   generated_at: z.string(),
   overall_summary: z.string(),
   overall_risk_score: z.number().min(0).max(100),
-  risk_level: z.enum(["Low", "Medium", "High", "Critical"]),
+  risk_level: z.enum(['Low', 'Medium', 'High', 'Critical']),
   context_used: z.number().optional(),
-  risks: z.array(
-    z.object({
-      risk_id: z.string(),
-      title: z.string(),
-      category: z.string(),
-      severity: z.enum(["High", "Medium", "Low"]),
-      likelihood: z.enum(["High", "Medium", "Low"]),
-      score: z.number().min(0).max(100),
-      why_risky: z.string(),
-      evidence: z
-        .array(
-          z.object({
-            section_ref: z.string(),
-            quote: z.string(),
-            confidence: z.number().min(0).max(1),
-            context_supported: z.boolean().optional(),
-          })
-        )
-        .min(1),
-      mitigations: z.array(z.string()).min(1),
-      redline_suggestion: z.string(),
-      tags: z.array(z.string()).optional(),
-    })
-  ),
+  risks: z.array(z.object({
+    risk_id: z.string(),
+    title: z.string(),
+    category: z.string(),
+    severity: z.enum(['High', 'Medium', 'Low']),
+    likelihood: z.enum(['High', 'Medium', 'Low']),
+    score: z.number().min(0).max(100),
+    why_risky: z.string(),
+    evidence: z.array(z.object({
+      section_ref: z.string(),
+      quote: z.string(),
+      confidence: z.number().min(0).max(1),
+      context_supported: z.boolean().optional()
+    })).min(1),
+    mitigations: z.array(z.string()).min(1),
+    redline_suggestion: z.string(),
+    tags: z.array(z.string()).optional()
+  }))
 });
 
 // Contract analysis model
@@ -97,17 +68,13 @@ Return only the terms separated by commas, no explanations.`;
 
     const messages = [
       new SystemMessage(systemPrompt),
-      // new HumanMessage(`Contract content: ${contractContent.substring(0, 2000)}`)
-      new HumanMessage(`Contract content: ${contractContent}`),
+      new HumanMessage(`Contract content: ${contractContent.substring(0, 2000)}`)
     ];
 
     const response = await keyTermExtractor.invoke(messages);
-    const terms = response.content
-      .trim()
-      .split(",")
-      .map((term) => term.trim());
-
-    return terms.filter((term) => term.length > 0);
+    const terms = response.content.trim().split(',').map(term => term.trim());
+    
+    return terms.filter(term => term.length > 0);
   } catch (error) {
     console.error("Error extracting key terms:", error);
     return [];
@@ -131,11 +98,10 @@ export async function analyzeContract(contractContent, contractId) {
 
     // Step 2: Retrieve relevant context from vector database
     console.log("Retrieving relevant context from vector database...");
-    const searchQuery =
-      keyTerms.length > 0
-        ? `${contractContent.substring(0, 500)} ${keyTerms.join(" ")}`
-        : contractContent.substring(0, 1000);
-
+    const searchQuery = keyTerms.length > 0 
+      ? `${contractContent.substring(0, 500)} ${keyTerms.join(' ')}`
+      : contractContent.substring(0, 1000);
+    
     const relevantDocs = await fetchRelevantDocs(searchQuery, 8);
     console.log("Found relevant documents:", relevantDocs?.length || 0);
 
@@ -143,11 +109,8 @@ export async function analyzeContract(contractContent, contractId) {
     let vectorContext = "";
     if (relevantDocs && relevantDocs.length > 0) {
       vectorContext = relevantDocs
-        .map(
-          (doc, i) =>
-            `[Reference ${i + 1} | Similarity: ${(doc.similarity || 0).toFixed(
-              2
-            )}]\n${doc.content}`
+        .map((doc, i) => 
+          `[Reference ${i + 1} | Similarity: ${(doc.similarity || 0).toFixed(2)}]\n${doc.content}`
         )
         .join("\n\n");
     }
@@ -179,7 +142,6 @@ For each risk identified:
 - Calculate a risk score (0-100)
 - Suggest practical mitigations based on best practices
 - Provide redline suggestions for contract improvement
-- Tag risks with relevant keywords
 
 Use the knowledge base context to:
 - Identify industry-specific risks
@@ -234,42 +196,32 @@ Ensure all risk scores are between 0-100 and confidence levels between 0-1.`;
 
     const messages = [
       new SystemMessage(systemPrompt),
-      new HumanMessage(analysisPrompt),
+      new HumanMessage(analysisPrompt)
     ];
 
     console.log("Sending contract to Gemini for analysis...");
     const response = await contractAnalyzer.invoke(messages);
-
+    
     console.log("Received analysis response, parsing JSON...");
     const analysisText = response.content;
-
+    
     // Extract JSON from the response (in case there's extra text)
-    const jsonMatches = analysisText.match(/\{[\s\S]*\}/g);
-    if (!jsonMatches) throw new Error("No valid JSON found");
-
-    // Take the last JSON block (most likely the structured one)
-    const parsedAnalysis = JSON.parse(jsonMatches[jsonMatches.length - 1]);
-
-    // ✅ Normalize enums before validation
-    parsedAnalysis.risk_level = normalizeEnum(
-      parsedAnalysis.risk_level,
-      "risk_level"
-    );
-    parsedAnalysis.risks =
-      parsedAnalysis.risks?.map((risk) => ({
-        ...risk,
-        severity: normalizeEnum(risk.severity, "severity"),
-        likelihood: normalizeEnum(risk.likelihood, "likelihood"),
-      })) || [];
-
+    const jsonMatch = analysisText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error("No valid JSON found in response");
+    }
+    
+    const parsedAnalysis = JSON.parse(jsonMatch[0]);
+    
     // Validate against schema
     const validatedAnalysis = RiskSchema.parse(parsedAnalysis);
-
+    
     console.log("Contract analysis completed successfully");
     return validatedAnalysis;
+
   } catch (error) {
     console.error("Error analyzing contract:", error);
-
+    
     // Return a basic error structure
     return {
       contract_id: contractId,
@@ -278,7 +230,7 @@ Ensure all risk scores are between 0-100 and confidence levels between 0-1.`;
       overall_risk_score: 0,
       risk_level: "Unknown",
       risks: [],
-      error: error.message,
+      error: error.message
     };
   }
 }
@@ -292,13 +244,13 @@ export function calculateOverallRisk(risks) {
   if (!risks || risks.length === 0) {
     return {
       overall_risk_score: 0,
-      risk_level: "Low",
+      risk_level: "Low"
     };
   }
 
   const totalScore = risks.reduce((sum, risk) => sum + risk.score, 0);
   const averageScore = totalScore / risks.length;
-
+  
   let riskLevel = "Low";
   if (averageScore >= 75) riskLevel = "Critical";
   else if (averageScore >= 50) riskLevel = "High";
@@ -306,7 +258,7 @@ export function calculateOverallRisk(risks) {
 
   return {
     overall_risk_score: Math.round(averageScore),
-    risk_level: riskLevel,
+    risk_level: riskLevel
   };
 }
 
@@ -321,23 +273,23 @@ export function generateRiskSummary(analysis) {
   }
 
   const { overall_risk_score, risk_level, risks, context_used } = analysis;
-
+  
   let summary = `Overall Risk Score: ${overall_risk_score}/100 (${risk_level} Risk Level)\n`;
   if (context_used) {
     summary += `Enhanced with ${context_used} knowledge base references\n`;
   }
   summary += `\nFound ${risks.length} potential risks:\n\n`;
-
+  
   risks.forEach((risk, index) => {
     summary += `${index + 1}. ${risk.title} (${risk.category})\n`;
     summary += `   Severity: ${risk.severity} | Likelihood: ${risk.likelihood} | Score: ${risk.score}/100\n`;
     summary += `   Why Risky: ${risk.why_risky}\n`;
-    summary += `   Mitigations: ${risk.mitigations.join(", ")}\n`;
-    if (risk.evidence && risk.evidence.some((e) => e.context_supported)) {
+    summary += `   Mitigations: ${risk.mitigations.join(', ')}\n`;
+    if (risk.evidence && risk.evidence.some(e => e.context_supported)) {
       summary += `   📚 Knowledge base supported\n`;
     }
     summary += `\n`;
   });
-
+  
   return summary;
 }
