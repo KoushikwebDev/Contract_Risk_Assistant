@@ -26,24 +26,28 @@ export async function ingestWithGemini() {
     chunkOverlap: 500,
   });
   const splitDocs = await splitter.splitDocuments(docs);
-  
+
   // Optional metadata enrichment
   const withMeta = splitDocs.map((d) => ({
     ...d,
     metadata: {
       ...(d.metadata || {}),
-      source_file: "Risk_Contract.pdf",
+      source_file: "Knowledge_Base.pdf",
+      full_path: "public/Knowledge_Base.pdf",
       page:
         (d.metadata && d.metadata.loc && d.metadata.loc.pageNumber) ??
         (d.metadata && d.metadata.page) ??
         null,
+      chunk_index: index, // Add chunk order for reconstruction
+      doc_id: `knowledge_base_${index}`, // Unique identifier
+      ingested_at: new Date().toISOString(),
     },
   }));
 
   // 3) Upsert into Supabase
   await SupabaseVectorStore.fromDocuments(splitDocs, embeddings, {
     client: supabase,
-    tableName: "documents", 
+    tableName: "documents",
   });
 
   return { inserted: withMeta.length };
