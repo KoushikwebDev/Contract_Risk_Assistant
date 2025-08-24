@@ -28,7 +28,7 @@ export async function ingestWithGemini() {
   const splitDocs = await splitter.splitDocuments(docs);
 
   // Optional metadata enrichment
-  const withMeta = splitDocs.map((d) => ({
+  const withMeta = splitDocs.map((d, index) => ({
     ...d,
     metadata: {
       ...(d.metadata || {}),
