@@ -30,11 +30,11 @@ export default function Home() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 shadow-lg ring-1 ring-white/30" />
-            <h1 className="text-3xl sm:text-5xl font-semibold tracking-tight text-slate-900">
-              Agentic{" "}
+            <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-slate-900">
+              Contract Analysis{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
                 AI
-              </span>
+              </span> 
             </h1>
           </div>
           <div className="hidden sm:flex items-center gap-2 text-slate-600">
@@ -152,7 +152,7 @@ export default function Home() {
                   <div>
                     <p className="text-sm text-slate-500">Platform</p>
                     <p className="text-lg font-semibold text-slate-900">
-                      Agentic AI
+                      Generative AI
                     </p>
                   </div>
                 </div>
